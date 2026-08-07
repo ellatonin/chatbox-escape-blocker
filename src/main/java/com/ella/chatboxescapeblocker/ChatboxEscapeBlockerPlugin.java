@@ -9,8 +9,11 @@ import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
+import net.runelite.api.ScriptID;
 import net.runelite.api.annotations.Interface;
 import net.runelite.api.gameval.InterfaceID;
+import net.runelite.api.gameval.VarClientID;
+import net.runelite.api.vars.InputType;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
@@ -371,9 +374,33 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			modalInterfaceOpen |= debugWidgetVisible;
 		}
 
+		if (modalInterfaceOpen) {
+			forceClearStuckBankSearch();
+		}
+
 		log.debug("shouldRemapEscape: modalInterfaceOpen={}", modalInterfaceOpen);
 
 		return !modalInterfaceOpen;
+	}
+
+	/**
+	 * Works around a client bug: closing the bank while its search box is still active leaves
+	 * the chatbox message layer stuck in {@link InputType#SEARCH}, which in turn leaves the
+	 * whole Bankmain interface group permanently reporting itself as visible - confirmed by
+	 * testing both Bankmain.ITEMS and Bankmain.FRAME, which get stuck identically, so this
+	 * isn't fixable by picking a different child widget. Forcibly clears that leftover chatbox
+	 * state with the same script the core Bank plugin's own search reset uses
+	 * (BankSearch#reset), letting the interface's hidden state catch up on a later tick.
+	 * Harmless if the bank is genuinely open and being searched right now - it just mirrors
+	 * what native Escape already does in that case (cancel the search, not close the bank).
+	 */
+	private void forceClearStuckBankSearch() {
+		if (client.getVarcIntValue(VarClientID.MESLAYERMODE) != InputType.SEARCH.getType()) {
+			return;
+		}
+
+		log.debug("shouldRemapEscape: forcing stuck bank search closed");
+		clientThread.invoke(() -> client.runScript(ScriptID.MESSAGE_LAYER_CLOSE, 1, 1, 0));
 	}
 
 	private boolean isVisible(int component) {

@@ -11,6 +11,7 @@ import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.ScriptID;
 import net.runelite.api.annotations.Interface;
+import net.runelite.api.events.ScriptPostFired;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.VarClientID;
 import net.runelite.api.vars.InputType;
@@ -45,6 +46,28 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 
 	@Inject
 	private ClientThread clientThread;
+
+	/**
+	 * The collection log never reliably reports itself closed via any widget (see the doc
+	 * comment on {@link #MODAL_CONTENT_WIDGETS} - both Collection.UNIVERSE and Collection.CONTENT
+	 * get permanently stuck reporting themselves open), so it's handled separately here with a
+	 * timeout heuristic instead: script 7797 ("collection log setup", per TempleOSRS's own use of
+	 * it to know when to re-add its sync button) reliably fires whenever the log's content is
+	 * (re)built - on open, and again on switching tabs/searching within it. Treat it as open for
+	 * a grace period after that script last fired, rather than trying to detect a real close.
+	 */
+	private static final int COLLECTION_LOG_SETUP_SCRIPT_ID = 7797;
+	private static final int COLLECTION_LOG_GRACE_PERIOD_TICKS = 15;
+	private int collectionLogOpenUntilTick = -1;
+
+	@Subscribe
+	public void onScriptPostFired(ScriptPostFired event) {
+		if (event.getScriptId() == COLLECTION_LOG_SETUP_SCRIPT_ID) {
+			collectionLogOpenUntilTick = client.getTickCount() + COLLECTION_LOG_GRACE_PERIOD_TICKS;
+			log.debug("onScriptPostFired: collection log setup fired, treating as open until tick {}",
+					collectionLogOpenUntilTick);
+		}
+	}
 
 	@Provides
 	ChatboxEscapeBlockerConfig provideConfig(ConfigManager configManager) {
@@ -140,37 +163,35 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 	}
 
 	/**
-	 * Each interface's own content widget - unlike the chatbox/toplevel containers,
-	 * these only
-	 * exist while that interface is genuinely open (same technique the core Bank
-	 * plugin uses
-	 * for Bankmain.ITEMS; Toplevel.MAINMODAL, the shared container most of these
-	 * load into,
-	 * turned out to never actually report itself as hidden). Add more here if
-	 * escape needs to
-	 * be blocked from closing one.
+	 * Each interface's own content widget - unlike the chatbox/toplevel containers, these only
+	 * exist while that interface is genuinely open (same technique the core Bank plugin uses for
+	 * Bankmain.ITEMS; Toplevel.MAINMODAL, the shared container most of these load into, turned out
+	 * to never actually report itself as hidden). Add more here if escape needs to be blocked from
+	 * closing one.
 	 *
-	 * Deliberately NOT included: achievement diaries, the quest list/journal,
-	 * combat achievement
-	 * tasks, the collection log, clan setup, the world switcher, and boss stats
-	 * boards (e.g.
-	 * Araxxor's). These never reliably report themselves closed - not via
-	 * Widget.isSelfHidden()
-	 * (stays "open" forever after first shown) and not via
-	 * WidgetLoaded/WidgetClosed events
-	 * either (most of these live in a tab/sidebar-hosted panel system and get
-	 * covered by
-	 * switching tabs rather than genuinely closed at the engine level; the world
-	 * switcher and
-	 * stats boards aren't tab-hosted but show the same symptom regardless). Either
-	 * detection
-	 * method gets permanently stuck treating them as open, which disables escape
-	 * remapping
-	 * everywhere until the client restarts - worse than not blocking escape on them
-	 * at all.
-	 * Don't re-add these without a per-interface way to detect their true state
-	 * (e.g. a varbit)
-	 * - a widget check alone isn't enough.
+	 * The quest journal, combat achievement tasks, clan setup, and boss kill/scoreboard screens
+	 * (Araxxor, Nex, the DT2 bosses, Colosseum, etc.) were originally assumed to have the same
+	 * "never reports itself closed" problem described below and were excluded entirely. That
+	 * turned out to be wrong - they work fine using their interface's own
+	 * INFINITY/INFINITE/UNIVERSE-style widget, and are now included below.
+	 *
+	 * The collection log is deliberately NOT in this array - every widget tried (UNIVERSE,
+	 * CONTENT) gets permanently stuck reporting itself open, the same way Bankmain.UNIVERSE did
+	 * (see the commented-out entries below), and a varbit hunt (RuneLite's Var Inspector devtool)
+	 * turned up nothing usable either. It's handled instead by a timeout heuristic - see
+	 * COLLECTION_LOG_SETUP_SCRIPT_ID and onScriptPostFired() near the top of this class.
+	 *
+	 * Still excluded, and unlike the collection log not yet worth a workaround: achievement
+	 * diaries and the world switcher. Not yet retested with the INFINITY/UNIVERSE-style approach
+	 * that fixed the interfaces above, so still unverified rather than confirmed broken.
+	 *
+	 * Getting a widget wrong here disables escape remapping everywhere until the client restarts
+	 * (or, for the bank-search case below, until the next Escape press) - worse than not blocking
+	 * escape on that interface at all. When adding a new entry, verify it with the "Debug widget
+	 * ID" config option or the "shouldRemapEscape: blocked by ..." debug log line, and don't just
+	 * check that it hides on a normal close - also check edge cases like closing the interface
+	 * while a search/filter box inside it is still active (see forceClearStuckBankSearch() below
+	 * for a real example of that biting the bank).
 	 */
 	private static final int[] MODAL_CONTENT_WIDGETS = {
 
@@ -188,8 +209,11 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.CaBosses.INFINITY,
 			InterfaceID.CaRewards.REWARDS_CONTENT,
 			InterfaceID.CollectionOverview.INFINITY,
-			// Collection Log regular doesn't work (very annoying)
+			// Collection Log doesn't work (very annoying) - both UNIVERSE and CONTENT get
+			// permanently stuck reporting themselves open, not a wrong-widget-choice problem.
+			// Would need a varbit-based detection signal instead of a widget check.
 			// InterfaceID.Collection.UNIVERSE,
+			// InterfaceID.Collection.CONTENT,
 			InterfaceID.QuestjournalOverview.INFINITY,
 			InterfaceID.Journalscroll.UNIVERSE,
 
@@ -372,6 +396,12 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			boolean debugWidgetVisible = isVisible(debugWidgetId);
 			log.debug("shouldRemapEscape: debugWidgetId={} visible={}", debugWidgetId, debugWidgetVisible);
 			modalInterfaceOpen |= debugWidgetVisible;
+		}
+
+		if (client.getTickCount() <= collectionLogOpenUntilTick) {
+			log.debug("shouldRemapEscape: blocked by collection log grace period (until tick {})",
+					collectionLogOpenUntilTick);
+			modalInterfaceOpen = true;
 		}
 
 		if (modalInterfaceOpen) {

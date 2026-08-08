@@ -1,10 +1,6 @@
 package com.ella.chatboxescapeblocker;
 
 import com.google.inject.Provides;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.HashMap;
-import java.util.Map;
 import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
@@ -108,14 +104,14 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 
 		for (int widgetId : MODAL_CONTENT_WIDGETS) {
 			if (isVisible(widgetId)) {
-				message.append(' ').append(widgetName(widgetId)).append(',');
+				message.append(' ').append(widgetId).append(',');
 				anyOpen = true;
 			}
 		}
 
 		int debugWidgetId = config.debugWidgetId();
 		if (debugWidgetId != 0 && isVisible(debugWidgetId)) {
-			message.append(' ').append(widgetName(debugWidgetId)).append(" (debug),");
+			message.append(' ').append(debugWidgetId).append(" (debug),");
 			anyOpen = true;
 		}
 
@@ -126,40 +122,6 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 		}
 
 		client.addChatMessage(ChatMessageType.CONSOLE, "", message.toString(), null);
-	}
-
-	/**
-	 * Every {@code InterfaceID} constant (across all its nested per-interface
-	 * classes), keyed by
-	 * its widget ID, so debug output can show e.g. "Bankmain.ITEMS" instead of a
-	 * bare packed int.
-	 * Built once via reflection rather than hand-maintained, so it can't drift out
-	 * of sync with
-	 * the IDs actually referenced in {@link #MODAL_CONTENT_WIDGETS}.
-	 */
-	private static final Map<Integer, String> WIDGET_NAMES = buildWidgetNames();
-
-	private static Map<Integer, String> buildWidgetNames() {
-		Map<Integer, String> names = new HashMap<>();
-		for (Class<?> group : InterfaceID.class.getDeclaredClasses()) {
-			for (Field field : group.getDeclaredFields()) {
-				if (field.getType() != int.class || !Modifier.isStatic(field.getModifiers())) {
-					continue;
-				}
-
-				try {
-					names.put(field.getInt(null), group.getSimpleName() + "." + field.getName());
-				} catch (IllegalAccessException e) {
-					// unreachable - these fields are all public
-				}
-			}
-		}
-		return names;
-	}
-
-	private static String widgetName(int widgetId) {
-		String name = WIDGET_NAMES.get(widgetId);
-		return name != null ? name + " (" + widgetId + ")" : String.valueOf(widgetId);
 	}
 
 	/**
@@ -386,7 +348,7 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 		for (int widgetId : MODAL_CONTENT_WIDGETS) {
 			if (isVisible(widgetId)) {
 				modalInterfaceOpen = true;
-				log.debug("shouldRemapEscape: blocked by {}", widgetName(widgetId));
+				log.debug("shouldRemapEscape: blocked by widget {}", widgetId);
 				break;
 			}
 		}

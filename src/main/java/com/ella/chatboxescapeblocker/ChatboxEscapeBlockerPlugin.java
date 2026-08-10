@@ -44,13 +44,20 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 	private ClientThread clientThread;
 
 	/**
-	 * The collection log never reliably reports itself closed via any widget (see the doc
-	 * comment on {@link #MODAL_CONTENT_WIDGETS} - both Collection.UNIVERSE and Collection.CONTENT
-	 * get permanently stuck reporting themselves open), so it's handled separately here with a
-	 * timeout heuristic instead: script 7797 ("collection log setup", per TempleOSRS's own use of
-	 * it to know when to re-add its sync button) reliably fires whenever the log's content is
-	 * (re)built - on open, and again on switching tabs/searching within it. Treat it as open for
-	 * a grace period after that script last fired, rather than trying to detect a real close.
+	 * The collection log never reliably reports itself closed via any widget (see
+	 * the doc
+	 * comment on {@link #MODAL_CONTENT_WIDGETS} - both Collection.UNIVERSE and
+	 * Collection.CONTENT
+	 * get permanently stuck reporting themselves open), so it's handled separately
+	 * here with a
+	 * timeout heuristic instead: script 7797 ("collection log setup", per
+	 * TempleOSRS's own use of
+	 * it to know when to re-add its sync button) reliably fires whenever the log's
+	 * content is
+	 * (re)built - on open, and again on switching tabs/searching within it. Treat
+	 * it as open for
+	 * a grace period after that script last fired, rather than trying to detect a
+	 * real close.
 	 */
 	private static final int COLLECTION_LOG_SETUP_SCRIPT_ID = 7797;
 	private static final int COLLECTION_LOG_GRACE_PERIOD_TICKS = 15;
@@ -125,34 +132,55 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 	}
 
 	/**
-	 * Each interface's own content widget - unlike the chatbox/toplevel containers, these only
-	 * exist while that interface is genuinely open (same technique the core Bank plugin uses for
-	 * Bankmain.ITEMS; Toplevel.MAINMODAL, the shared container most of these load into, turned out
-	 * to never actually report itself as hidden). Add more here if escape needs to be blocked from
+	 * Each interface's own content widget - unlike the chatbox/toplevel containers,
+	 * these only
+	 * exist while that interface is genuinely open (same technique the core Bank
+	 * plugin uses for
+	 * Bankmain.ITEMS; Toplevel.MAINMODAL, the shared container most of these load
+	 * into, turned out
+	 * to never actually report itself as hidden). Add more here if escape needs to
+	 * be blocked from
 	 * closing one.
 	 *
-	 * The quest journal, combat achievement tasks, clan setup, and boss kill/scoreboard screens
-	 * (Araxxor, Nex, the DT2 bosses, Colosseum, etc.) were originally assumed to have the same
-	 * "never reports itself closed" problem described below and were excluded entirely. That
+	 * The quest journal, combat achievement tasks, clan setup, and boss
+	 * kill/scoreboard screens
+	 * (Araxxor, Nex, the DT2 bosses, Colosseum, etc.) were originally assumed to
+	 * have the same
+	 * "never reports itself closed" problem described below and were excluded
+	 * entirely. That
 	 * turned out to be wrong - they work fine using their interface's own
 	 * INFINITY/INFINITE/UNIVERSE-style widget, and are now included below.
 	 *
-	 * The collection log is deliberately NOT in this array - every widget tried (UNIVERSE,
-	 * CONTENT) gets permanently stuck reporting itself open, the same way Bankmain.UNIVERSE did
-	 * (see the commented-out entries below), and a varbit hunt (RuneLite's Var Inspector devtool)
-	 * turned up nothing usable either. It's handled instead by a timeout heuristic - see
-	 * COLLECTION_LOG_SETUP_SCRIPT_ID and onScriptPostFired() near the top of this class.
+	 * The collection log is deliberately NOT in this array - every widget tried
+	 * (UNIVERSE,
+	 * CONTENT) gets permanently stuck reporting itself open, the same way
+	 * Bankmain.UNIVERSE did
+	 * (see the commented-out entries below), and a varbit hunt (RuneLite's Var
+	 * Inspector devtool)
+	 * turned up nothing usable either. It's handled instead by a timeout heuristic
+	 * - see
+	 * COLLECTION_LOG_SETUP_SCRIPT_ID and onScriptPostFired() near the top of this
+	 * class.
 	 *
-	 * Still excluded, and unlike the collection log not yet worth a workaround: achievement
-	 * diaries and the world switcher. Not yet retested with the INFINITY/UNIVERSE-style approach
-	 * that fixed the interfaces above, so still unverified rather than confirmed broken.
+	 * Still excluded, and unlike the collection log not yet worth a workaround:
+	 * achievement
+	 * diaries and the world switcher. Not yet retested with the
+	 * INFINITY/UNIVERSE-style approach
+	 * that fixed the interfaces above, so still unverified rather than confirmed
+	 * broken.
 	 *
-	 * Getting a widget wrong here disables escape remapping everywhere until the client restarts
-	 * (or, for the bank-search case below, until the next Escape press) - worse than not blocking
-	 * escape on that interface at all. When adding a new entry, verify it with the "Debug widget
-	 * ID" config option or the "shouldRemapEscape: blocked by ..." debug log line, and don't just
-	 * check that it hides on a normal close - also check edge cases like closing the interface
-	 * while a search/filter box inside it is still active (see forceClearStuckBankSearch() below
+	 * Getting a widget wrong here disables escape remapping everywhere until the
+	 * client restarts
+	 * (or, for the bank-search case below, until the next Escape press) - worse
+	 * than not blocking
+	 * escape on that interface at all. When adding a new entry, verify it with the
+	 * "Debug widget
+	 * ID" config option or the "shouldRemapEscape: blocked by ..." debug log line,
+	 * and don't just
+	 * check that it hides on a normal close - also check edge cases like closing
+	 * the interface
+	 * while a search/filter box inside it is still active (see
+	 * forceClearStuckBankSearch() below
 	 * for a real example of that biting the bank).
 	 */
 	private static final int[] MODAL_CONTENT_WIDGETS = {
@@ -172,7 +200,8 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.CaRewards.REWARDS_CONTENT,
 			InterfaceID.CollectionOverview.INFINITY,
 			// Collection Log doesn't work (very annoying) - both UNIVERSE and CONTENT get
-			// permanently stuck reporting themselves open, not a wrong-widget-choice problem.
+			// permanently stuck reporting themselves open, not a wrong-widget-choice
+			// problem.
 			// Would need a varbit-based detection signal instead of a widget check.
 			// InterfaceID.Collection.UNIVERSE,
 			// InterfaceID.Collection.CONTENT,
@@ -334,6 +363,12 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.LeviathanScoreboard.UNIVERSE, // untested
 			InterfaceID.VardorvisScoreboard.UNIVERSE, // untested
 
+			// Sailing
+			InterfaceID.SailingBoatCargohold.UNIVERSE,
+			InterfaceID.SailingCustomisation.INFINITY,
+			InterfaceID.SailingBoatSelection.INFINITY,
+			InterfaceID.SailingCrew.INFINITY,
+
 	};
 
 	/**
@@ -376,15 +411,23 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 	}
 
 	/**
-	 * Works around a client bug: closing the bank while its search box is still active leaves
-	 * the chatbox message layer stuck in {@link InputType#SEARCH}, which in turn leaves the
-	 * whole Bankmain interface group permanently reporting itself as visible - confirmed by
-	 * testing both Bankmain.ITEMS and Bankmain.FRAME, which get stuck identically, so this
-	 * isn't fixable by picking a different child widget. Forcibly clears that leftover chatbox
+	 * Works around a client bug: closing the bank while its search box is still
+	 * active leaves
+	 * the chatbox message layer stuck in {@link InputType#SEARCH}, which in turn
+	 * leaves the
+	 * whole Bankmain interface group permanently reporting itself as visible -
+	 * confirmed by
+	 * testing both Bankmain.ITEMS and Bankmain.FRAME, which get stuck identically,
+	 * so this
+	 * isn't fixable by picking a different child widget. Forcibly clears that
+	 * leftover chatbox
 	 * state with the same script the core Bank plugin's own search reset uses
-	 * (BankSearch#reset), letting the interface's hidden state catch up on a later tick.
-	 * Harmless if the bank is genuinely open and being searched right now - it just mirrors
-	 * what native Escape already does in that case (cancel the search, not close the bank).
+	 * (BankSearch#reset), letting the interface's hidden state catch up on a later
+	 * tick.
+	 * Harmless if the bank is genuinely open and being searched right now - it just
+	 * mirrors
+	 * what native Escape already does in that case (cancel the search, not close
+	 * the bank).
 	 */
 	private void forceClearStuckBankSearch() {
 		if (client.getVarcIntValue(VarClientID.MESLAYERMODE) != InputType.SEARCH.getType()) {

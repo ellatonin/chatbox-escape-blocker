@@ -131,58 +131,6 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 		client.addChatMessage(ChatMessageType.CONSOLE, "", message.toString(), null);
 	}
 
-	/**
-	 * Each interface's own content widget - unlike the chatbox/toplevel containers,
-	 * these only
-	 * exist while that interface is genuinely open (same technique the core Bank
-	 * plugin uses for
-	 * Bankmain.ITEMS; Toplevel.MAINMODAL, the shared container most of these load
-	 * into, turned out
-	 * to never actually report itself as hidden). Add more here if escape needs to
-	 * be blocked from
-	 * closing one.
-	 *
-	 * The quest journal, combat achievement tasks, clan setup, and boss
-	 * kill/scoreboard screens
-	 * (Araxxor, Nex, the DT2 bosses, Colosseum, etc.) were originally assumed to
-	 * have the same
-	 * "never reports itself closed" problem described below and were excluded
-	 * entirely. That
-	 * turned out to be wrong - they work fine using their interface's own
-	 * INFINITY/INFINITE/UNIVERSE-style widget, and are now included below.
-	 *
-	 * The collection log is deliberately NOT in this array - every widget tried
-	 * (UNIVERSE,
-	 * CONTENT) gets permanently stuck reporting itself open, the same way
-	 * Bankmain.UNIVERSE did
-	 * (see the commented-out entries below), and a varbit hunt (RuneLite's Var
-	 * Inspector devtool)
-	 * turned up nothing usable either. It's handled instead by a timeout heuristic
-	 * - see
-	 * COLLECTION_LOG_SETUP_SCRIPT_ID and onScriptPostFired() near the top of this
-	 * class.
-	 *
-	 * Still excluded, and unlike the collection log not yet worth a workaround:
-	 * achievement
-	 * diaries and the world switcher. Not yet retested with the
-	 * INFINITY/UNIVERSE-style approach
-	 * that fixed the interfaces above, so still unverified rather than confirmed
-	 * broken.
-	 *
-	 * Getting a widget wrong here disables escape remapping everywhere until the
-	 * client restarts
-	 * (or, for the bank-search case below, until the next Escape press) - worse
-	 * than not blocking
-	 * escape on that interface at all. When adding a new entry, verify it with the
-	 * "Debug widget
-	 * ID" config option or the "shouldRemapEscape: blocked by ..." debug log line,
-	 * and don't just
-	 * check that it hides on a normal close - also check edge cases like closing
-	 * the interface
-	 * while a search/filter box inside it is still active (see
-	 * forceClearStuckBankSearch() below
-	 * for a real example of that biting the bank).
-	 */
 	private static final int[] MODAL_CONTENT_WIDGETS = {
 
 			/////////////////////////////////////////////////////////
@@ -262,9 +210,7 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			// Bank
 			// Bankmain.UNIVERSE (the shared root container) intermittently stays reported
 			// as open
-			// even once the interface is genuinely gone - same "never hides" issue
-			// documented above.
-			// Use ITEMS instead (matches the core Bank plugin's own technique).
+			// even once the interface is genuinely gone
 			InterfaceID.Bankmain.ITEMS,
 			InterfaceID.BankDepositbox.UNIVERSE,
 			InterfaceID.BankpinKeypad.UNIVERSE,
@@ -363,20 +309,63 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.LeviathanScoreboard.UNIVERSE, // untested
 			InterfaceID.VardorvisScoreboard.UNIVERSE, // untested
 
+			// Misc
+			InterfaceID.Questscroll.UNIVERSE,
+			InterfaceID.Longscroll.UNIVERSE,
+
 			// Sailing
 			InterfaceID.SailingBoatCargohold.UNIVERSE,
 			InterfaceID.SailingCustomisation.INFINITY,
 			InterfaceID.SailingBoatSelection.INFINITY,
 			InterfaceID.SailingCrew.INFINITY,
 
+			// Clue scrolls
+			InterfaceID.TrailCluetext.ROOT_MODEL0,
+			InterfaceID.TrailRewardscreen.ITEMS, // untested
+			InterfaceID.TrailSlidepuzzle.PIECES, // untested
+			InterfaceID.LightPuzzle.LIGHTS, // untested
+			InterfaceID.TrailSextant.SEXTANT_BACKING, // untested
+
+			InterfaceID.TrailMap01.SCROLLMODEL_MAP01, // untested
+			InterfaceID.TrailMap02.SCROLLMODEL_MAP02, // untested
+			InterfaceID.TrailMap03.SCROLLMODEL_MAP03, // untested
+			InterfaceID.TrailMap04.SCROLLMODEL_MAP04, // untested
+			InterfaceID.TrailMap05.SCROLLMODEL_MAP05, // untested
+			InterfaceID.TrailMap06.SCROLLMODEL_MAP06, // untested
+			InterfaceID.TrailMap07.BG_SCROLL, // untested
+			InterfaceID.TrailMap08.BG_SCROLL, // untested
+			InterfaceID.TrailMap09.BG_SCROLL,
+			InterfaceID.TrailMap10.BG_SCROLL, // untested
+			InterfaceID.TrailMap11.BG_SCROLL, // untested
+			InterfaceID.TrailMap12.BG_SCROLL, // untested
+			InterfaceID.TrailMap13.BG_SCROLL, // untested
+			InterfaceID.TrailMap14.BG_SCROLL, // untested
+			InterfaceID.TrailMap15.BG_SCROLL, // untested
+			InterfaceID.TrailMap16.BG_SCROLL, // untested
+			InterfaceID.TrailMap17.BG_SCROLL, // untested
+			InterfaceID.TrailMap18.BG_SCROLL, // untested
+			InterfaceID.TrailMap19.BG_SCROLL, // untested
+			InterfaceID.TrailMap20.ROOT_MODEL0, // untested
+			InterfaceID.TrailMap21.ROOT_MODEL0, // untested
+			InterfaceID.TrailMap22.ROOT_MODEL0, // untested
+			InterfaceID.TrailMap23.ROOT_MODEL0, // untested
+			InterfaceID.TrailMap24.ROOT_MODEL0, // untested
+
+			// A few map clues live outside the TrailMap01-24 block at their own group IDs
+			InterfaceID.TrailClueEasyMap006.BG_SCROLL, // untested
+			InterfaceID.TrailClueHardMap006.BG_SCROLL, // untested
+			InterfaceID.TrailClueHardMap007.BG_SCROLL, // untested
+			InterfaceID.TrailClueMediumMap008.ROOT_MODEL0, // untested
+			InterfaceID.TrailClueMediumMap009.ROOT_MODEL0, // untested
+			InterfaceID.TrailClueMediumMap010.BG_SCROLL, // untested
+			InterfaceID.TrailClueMediumMap011.BG_SCROLL, // untested
+			InterfaceID.TrailClueMediumMap012.BG_SCROLL, // untested
+
 	};
 
 	/**
 	 * True everywhere except while the bank, a shop, the trade screen, or a similar
 	 * modal
-	 * interface (see {@link #MODAL_CONTENT_WIDGETS}) is open - those should keep
-	 * their normal
-	 * "escape closes interface" behavior untouched.
 	 */
 	boolean shouldRemapEscape() {
 		boolean modalInterfaceOpen = false;

@@ -6,7 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.ScriptID;
-import net.runelite.api.annotations.Interface;
 import net.runelite.api.events.ScriptPostFired;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.VarClientID;
@@ -49,26 +48,33 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 	 * comment on {@link #MODAL_CONTENT_WIDGETS} - both Collection.UNIVERSE and
 	 * Collection.CONTENT
 	 * get permanently stuck reporting themselves open), so it's handled separately
-	 * here with a
-	 * timeout heuristic instead: script 7797 ("collection log setup", per
-	 * TempleOSRS's own use of
-	 * it to know when to re-add its sync button) reliably fires whenever the log's
-	 * content is
-	 * (re)built - on open, and again on switching tabs/searching within it. Treat
-	 * it as open for
-	 * a grace period after that script last fired, rather than trying to detect a
-	 * real close.
+	 * here: script
+	 * 7797 ("collection log setup", per TempleOSRS's own use of it to know when to
+	 * re-add its sync
+	 * button) reliably fires whenever the log's content is (re)built - on open, and
+	 * again on
+	 * switching tabs/searching within it. Rather than guessing how long the log
+	 * stays open (a
+	 * fixed grace period can expire while it's still genuinely open, silently
+	 * letting Escape get
+	 * remapped again), arm a one-shot passthrough a tick after the script fires:
+	 * the
+	 * very next
+	 * Escape press - whenever it comes - is let through as real Escape (closing the
+	 * log, same as
+	 * native behaviour), then normal remapping resumes. The one-tick delay avoids
+	 * arming mid-build,
+	 * in the same tick the script fires.
 	 */
 	private static final int COLLECTION_LOG_SETUP_SCRIPT_ID = 7797;
-	private static final int COLLECTION_LOG_GRACE_PERIOD_TICKS = 15;
-	private int collectionLogOpenUntilTick = -1;
+	private int collectionLogEscapePassthroughArmAtTick = -1;
 
 	@Subscribe
 	public void onScriptPostFired(ScriptPostFired event) {
 		if (event.getScriptId() == COLLECTION_LOG_SETUP_SCRIPT_ID) {
-			collectionLogOpenUntilTick = client.getTickCount() + COLLECTION_LOG_GRACE_PERIOD_TICKS;
-			log.debug("onScriptPostFired: collection log setup fired, treating as open until tick {}",
-					collectionLogOpenUntilTick);
+			collectionLogEscapePassthroughArmAtTick = client.getTickCount() + 1;
+			log.debug("onScriptPostFired: collection log setup fired, arming escape passthrough at tick {}",
+					collectionLogEscapePassthroughArmAtTick);
 		}
 	}
 
@@ -384,10 +390,11 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			modalInterfaceOpen |= debugWidgetVisible;
 		}
 
-		if (client.getTickCount() <= collectionLogOpenUntilTick) {
-			log.debug("shouldRemapEscape: blocked by collection log grace period (until tick {})",
-					collectionLogOpenUntilTick);
+		if (collectionLogEscapePassthroughArmAtTick != -1
+				&& client.getTickCount() >= collectionLogEscapePassthroughArmAtTick) {
+			log.debug("shouldRemapEscape: consuming armed collection log escape passthrough");
 			modalInterfaceOpen = true;
+			collectionLogEscapePassthroughArmAtTick = -1;
 		}
 
 		if (modalInterfaceOpen) {

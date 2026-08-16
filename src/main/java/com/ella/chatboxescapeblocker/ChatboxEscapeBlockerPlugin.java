@@ -318,6 +318,7 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			// Misc
 			InterfaceID.Questscroll.UNIVERSE,
 			InterfaceID.Longscroll.UNIVERSE,
+			InterfaceID.Xpreward.UNIVERSE,
 
 			// Sailing
 			InterfaceID.SailingBoatCargohold.UNIVERSE,

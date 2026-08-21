@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.ScriptID;
+import net.runelite.api.events.GameTick;
 import net.runelite.api.events.ScriptPostFired;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.VarClientID;
@@ -78,6 +79,30 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 		}
 	}
 
+	/**
+	 * {@link Widget#getParent()} and {@link Widget#isHidden()} both assert
+	 * they're called on
+	 * the client thread, but {@link #shouldRemapEscape()} runs on the AWT thread
+	 * and needs a
+	 * synchronous answer, so {@link #MODAL_CONTENT_WIDGETS_ANCESTOR_AWARE}
+	 * visibility is instead
+	 * recomputed here once per game tick and cached for
+	 * {@link #shouldRemapEscape()} to read.
+	 */
+	private volatile boolean ancestorAwareWidgetOpen = false;
+
+	@Subscribe
+	public void onGameTick(GameTick event) {
+		for (int widgetId : MODAL_CONTENT_WIDGETS_ANCESTOR_AWARE) {
+			if (isVisibleIncludingAncestors(widgetId)) {
+				ancestorAwareWidgetOpen = true;
+				return;
+			}
+		}
+
+		ancestorAwareWidgetOpen = false;
+	}
+
 	@Provides
 	ChatboxEscapeBlockerConfig provideConfig(ConfigManager configManager) {
 		return configManager.getConfig(ChatboxEscapeBlockerConfig.class);
@@ -117,6 +142,13 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 
 		for (int widgetId : MODAL_CONTENT_WIDGETS) {
 			if (isVisible(widgetId)) {
+				message.append(' ').append(widgetId).append(',');
+				anyOpen = true;
+			}
+		}
+
+		for (int widgetId : MODAL_CONTENT_WIDGETS_ANCESTOR_AWARE) {
+			if (isVisibleIncludingAncestors(widgetId)) {
 				message.append(' ').append(widgetId).append(',');
 				anyOpen = true;
 			}
@@ -199,7 +231,8 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.TeletabsCraftIf.UNIVERSE,
 			InterfaceID.PohBookcase.INFINITE,
 			InterfaceID.LeagueTrophies.INFINITY,
-			InterfaceID.PohCostumes.INFINITE,
+			// PohCostumes.ITEMS is handled separately below in
+			// MODAL_CONTENT_WIDGETS_ANCESTOR_AWARE, not here.
 			InterfaceID.PohMenagerie.UNIVERSE,
 			InterfaceID.PohFurnitureCreationMenu.UNIVERSE,
 			InterfaceID.Fairyrings.ROOT_RECT0,
@@ -371,6 +404,26 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 	};
 
 	/**
+	 * Widgets that need {@link #isVisibleIncludingAncestors(int)} instead of the
+	 * plain
+	 * {@link #isVisible(int)} check used for {@link #MODAL_CONTENT_WIDGETS}.
+	 *
+	 * PohCostumes.ITEMS: opening the costume room's search box and then pressing
+	 * Escape takes
+	 * a different closing path than a normal close - instead of unloading the
+	 * group (like a
+	 * normal close) or flipping the widget's own hidden flag, it only hides an
+	 * ancestor
+	 * container above PohCostumes' own root. Every widget in the group keeps
+	 * reporting
+	 * selfHidden=false forever, so {@link #isVisible(int)} never notices it
+	 * closed.
+	 */
+	private static final int[] MODAL_CONTENT_WIDGETS_ANCESTOR_AWARE = {
+			InterfaceID.PohCostumes.ITEMS,
+	};
+
+	/**
 	 * True everywhere except while the bank, a shop, the trade screen, or a similar
 	 * modal
 	 */
@@ -382,6 +435,11 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 				log.debug("shouldRemapEscape: blocked by widget {}", widgetId);
 				break;
 			}
+		}
+
+		if (!modalInterfaceOpen && ancestorAwareWidgetOpen) {
+			modalInterfaceOpen = true;
+			log.debug("shouldRemapEscape: blocked by cached ancestor-aware widget state");
 		}
 
 		int debugWidgetId = config.debugWidgetId();
@@ -438,5 +496,25 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 	private boolean isVisible(int component) {
 		Widget w = client.getWidget(component);
 		return w != null && !w.isSelfHidden();
+	}
+
+	/**
+	 * Like {@link #isVisible(int)}, but uses {@link Widget#isHidden()} - which
+	 * also accounts for
+	 * ancestors, unlike {@link Widget#isSelfHidden()} - since PohCostumes' stuck-
+	 * after-search
+	 * state hides it via an ancestor in the client's interface-layer system
+	 * rather than any
+	 * widget's own flag. isHidden() asserts it's called on the client thread, so
+	 * this may only
+	 * be called from {@link #onGameTick(GameTick)} or other client-thread
+	 * callbacks - never
+	 * directly from {@link #shouldRemapEscape()}, which runs on the AWT thread
+	 * and reads the
+	 * cached {@link #ancestorAwareWidgetOpen} instead.
+	 */
+	private boolean isVisibleIncludingAncestors(int component) {
+		Widget w = client.getWidget(component);
+		return w != null && !w.isHidden();
 	}
 }

@@ -359,6 +359,9 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.SailingBoatSelection.INFINITY,
 			InterfaceID.SailingCrew.INFINITY,
 
+			// Hunter stuff
+			InterfaceID.HuntsmansKit.UNIVERSE,
+
 			// Clue scrolls
 			InterfaceID.TrailCluetext.ROOT_MODEL0,
 			InterfaceID.TrailRewardscreen.ITEMS, // untested
@@ -421,6 +424,7 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 	 */
 	private static final int[] MODAL_CONTENT_WIDGETS_ANCESTOR_AWARE = {
 			InterfaceID.PohCostumes.ITEMS,
+			InterfaceID.BankDepositImp.INVENTORY,
 	};
 
 	/**

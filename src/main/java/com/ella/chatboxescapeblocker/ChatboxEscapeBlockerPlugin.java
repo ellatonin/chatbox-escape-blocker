@@ -290,7 +290,7 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			// Brimhaven Agility Arena
 			// Castle Wars
 			// Deadman rewards
-			InterfaceID.OmnishopMain.INFINITY,
+			// Generic reward shops handled in MODAL_CONTENT_WIDGETS_ANCESTOR_AWARE
 
 			// Fortis Colosseum
 			InterfaceID.ColosseumScoreboard.UNIVERSE,
@@ -352,12 +352,14 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.Questscroll.UNIVERSE,
 			InterfaceID.Longscroll.UNIVERSE,
 			InterfaceID.Xpreward.UNIVERSE,
+			InterfaceID.SailingMenu.UNIVERSE, // charter
 
 			// Sailing
 			InterfaceID.SailingBoatCargohold.UNIVERSE,
 			InterfaceID.SailingCustomisation.INFINITY,
 			InterfaceID.SailingBoatSelection.INFINITY,
 			InterfaceID.SailingCrew.INFINITY,
+			InterfaceID.PortTaskBoard.INFINITY,
 
 			// Hunter stuff
 			InterfaceID.HuntsmansKit.UNIVERSE,
@@ -425,6 +427,7 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 	private static final int[] MODAL_CONTENT_WIDGETS_ANCESTOR_AWARE = {
 			InterfaceID.PohCostumes.ITEMS,
 			InterfaceID.BankDepositImp.INVENTORY,
+			InterfaceID.OmnishopMain.INFINITY,
 	};
 
 	/**

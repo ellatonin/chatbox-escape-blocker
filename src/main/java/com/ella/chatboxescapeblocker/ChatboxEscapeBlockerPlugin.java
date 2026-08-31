@@ -193,6 +193,7 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			// InterfaceID.Collection.CONTENT,
 			InterfaceID.QuestjournalOverview.INFINITY,
 			InterfaceID.Journalscroll.UNIVERSE,
+			InterfaceID.Minigames.INFINITE, // spellbook button
 
 			// Worn Equipment
 			InterfaceID.Equipment.FRAME,
@@ -222,6 +223,9 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 
 			// World map
 			InterfaceID.Worldmap.UNIVERSE,
+
+			// World hopper UI
+			InterfaceID.WorldswitcherOptions.INFINITE,
 
 			/////////////////////////////////////////////////////////
 			// Player House /////////////////////////////////////////
@@ -405,6 +409,11 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.TrailClueMediumMap010.BG_SCROLL, // untested
 			InterfaceID.TrailClueMediumMap011.BG_SCROLL, // untested
 			InterfaceID.TrailClueMediumMap012.BG_SCROLL, // untested
+
+			// Group Ironman, probably more cant verify rn
+			InterfaceID.GimSettings.INFINITE,
+			InterfaceID.GimOptions.INFINITE,
+			InterfaceID.SharedBank.INFINITE, // GIM bank
 
 	};
 

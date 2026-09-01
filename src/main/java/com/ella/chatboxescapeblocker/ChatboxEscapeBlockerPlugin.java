@@ -292,9 +292,6 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.SpeedrunningRewards.CONTENT,
 			InterfaceID.TrekRewards.UNIVERSE,
 
-			// Brimhaven Agility Arena
-			// Castle Wars
-			// Deadman rewards
 			// Generic reward shops handled in MODAL_CONTENT_WIDGETS_ANCESTOR_AWARE
 
 			// Fortis Colosseum
@@ -358,6 +355,7 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.Longscroll.UNIVERSE,
 			InterfaceID.Xpreward.UNIVERSE,
 			InterfaceID.SailingMenu.UNIVERSE, // charter
+			InterfaceID.MessagescrollHandwriting.ROOT_MODEL0, // fossil island fossil cleaning notes
 
 			// Sailing
 			InterfaceID.SailingBoatCargohold.UNIVERSE,

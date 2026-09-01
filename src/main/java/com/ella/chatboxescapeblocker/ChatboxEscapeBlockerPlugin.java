@@ -224,8 +224,9 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			// World map
 			InterfaceID.Worldmap.UNIVERSE,
 
-			// World hopper UI
+			// Other
 			InterfaceID.WorldswitcherOptions.INFINITE,
+			InterfaceID.XpdropsSetup.UNIVERSE,
 
 			/////////////////////////////////////////////////////////
 			// Player House /////////////////////////////////////////

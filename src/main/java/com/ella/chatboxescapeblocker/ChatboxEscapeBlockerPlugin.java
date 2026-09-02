@@ -291,6 +291,7 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.LeagueRewards.CONTENT,
 			InterfaceID.SpeedrunningRewards.CONTENT,
 			InterfaceID.TrekRewards.UNIVERSE,
+			InterfaceID.FossilVolcanicShop.UNIVERSE,
 
 			// Generic reward shops handled in MODAL_CONTENT_WIDGETS_ANCESTOR_AWARE
 
@@ -355,7 +356,13 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.Longscroll.UNIVERSE,
 			InterfaceID.Xpreward.UNIVERSE,
 			InterfaceID.SailingMenu.UNIVERSE, // charter
+			InterfaceID.ItemTransmog.UNIVERSE,
+
+			// Fossil island stuff
 			InterfaceID.MessagescrollHandwriting.ROOT_MODEL0, // fossil island fossil cleaning notes
+			InterfaceID.FossilMushtrees.UNIVERSE,
+			InterfaceID.FarmingTools.UNIVERSE,
+			InterfaceID.FossilUnderwaterTraining.UNIVERSE,
 
 			// Sailing
 			InterfaceID.SailingBoatCargohold.UNIVERSE,

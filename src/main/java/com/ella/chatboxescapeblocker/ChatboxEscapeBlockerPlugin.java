@@ -358,6 +358,7 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.SailingMenu.UNIVERSE, // charter
 			InterfaceID.ItemTransmog.UNIVERSE,
 			InterfaceID.SlayerTaskChoice.INFINITY,
+			InterfaceID.RunePouch.UNIVERSE,
 
 			// Fossil island stuff
 			InterfaceID.MessagescrollHandwriting.ROOT_MODEL0, // fossil island fossil cleaning notes

@@ -361,6 +361,7 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.RunePouch.UNIVERSE,
 			InterfaceID.Bookofscrolls.UNIVERSE,
 			InterfaceID.GravestoneRetrieval.UNIVERSE,
+			InterfaceID.GryphonBoss.UNIVERSE,
 
 			// Fossil island stuff
 			InterfaceID.MessagescrollHandwriting.ROOT_MODEL0, // fossil island fossil cleaning notes

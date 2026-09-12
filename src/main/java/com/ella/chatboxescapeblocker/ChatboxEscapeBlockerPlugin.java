@@ -359,6 +359,8 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.ItemTransmog.UNIVERSE,
 			InterfaceID.SlayerTaskChoice.INFINITY,
 			InterfaceID.RunePouch.UNIVERSE,
+			InterfaceID.Bookofscrolls.UNIVERSE,
+			InterfaceID.GravestoneRetrieval.UNIVERSE,
 
 			// Fossil island stuff
 			InterfaceID.MessagescrollHandwriting.ROOT_MODEL0, // fossil island fossil cleaning notes
@@ -445,6 +447,8 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.PohCostumes.ITEMS,
 			InterfaceID.BankDepositImp.INVENTORY,
 			InterfaceID.OmnishopMain.INFINITY,
+			InterfaceID.Smithing.UNIVERSE, // bugged in osrs, escape doesn't close
+			InterfaceID.CraftingGold.UNIVERSE, // bugged in osrs, escape doesn't close
 	};
 
 	/**

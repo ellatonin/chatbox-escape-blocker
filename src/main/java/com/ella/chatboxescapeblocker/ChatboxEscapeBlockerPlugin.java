@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.ScriptID;
+import net.runelite.api.annotations.Interface;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.ScriptPostFired;
 import net.runelite.api.gameval.InterfaceID;
@@ -315,6 +316,8 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.TobPartylist.UNIVERSE,
 			InterfaceID.TobPartydetails.UNIVERSE,
 			InterfaceID.TobChests.CONTENT, // untested
+			InterfaceID.TobMidwayStores.UNIVERSE,
+			InterfaceID.TobInfoboard.UNIVERSE,
 
 			// Tombs of Depression
 			InterfaceID.ToaPartylist.UNIVERSE,
@@ -345,6 +348,7 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.PerilousMoonsScoreboard.UNIVERSE,
 			InterfaceID.RoyalTitansScoreboard.UNIVERSE,
 			InterfaceID.YamaScoreboard.UNIVERSE,
+			InterfaceID.BarrowsReward.UNIVERSE,
 
 			InterfaceID.DukeSucellusScoreboard.UNIVERSE,
 			InterfaceID.WhispererScoreboard.UNIVERSE, // untested
@@ -362,6 +366,7 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.Bookofscrolls.UNIVERSE,
 			InterfaceID.GravestoneRetrieval.UNIVERSE,
 			InterfaceID.GryphonBoss.UNIVERSE,
+			InterfaceID.Patchy.UNIVERSE,
 
 			// Fossil island stuff
 			InterfaceID.MessagescrollHandwriting.ROOT_MODEL0, // fossil island fossil cleaning notes

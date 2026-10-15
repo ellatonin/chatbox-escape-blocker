@@ -458,56 +458,10 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 	};
 
 	/**
-	 * NPC dialogue, player dialogue, the "click here to continue" options menu, and
-	 * the level-up
-	 * popup - the interfaces {@link #isDialogOpen()} checks for
-	 * {@link ChatboxEscapeBlockerConfig#experimentalDialogOnlyMode()}, in place of
-	 * the full
-	 * {@link #MODAL_CONTENT_WIDGETS} exception list.
-	 */
-	private static final int[] DIALOG_WIDGETS = {
-			InterfaceID.ChatLeft.UNIVERSE, // NPC dialogue
-			InterfaceID.ChatRight.UNIVERSE, // player dialogue
-			InterfaceID.Chatmenu.UNIVERSE, // dialogue options
-			InterfaceID.LevelupDisplay.UNIVERSE,
-	};
-
-	/**
-	 * Whether one of {@link #DIALOG_WIDGETS} is currently open. Used by
-	 * {@link ChatboxEscapeBlockerInputListener} to decide whether to also fire a
-	 * synthetic native
-	 * Escape press alongside the remap while
-	 * {@link ChatboxEscapeBlockerConfig#experimentalDialogOnlyMode()} is on -
-	 * outside a dialog,
-	 * Escape should still do whatever it'd normally do (e.g. close the bank) in
-	 * addition to being
-	 * remapped, but inside one the real Escape must stay suppressed so it doesn't
-	 * close the
-	 * dialogue.
-	 */
-	boolean isDialogOpen() {
-		for (int widgetId : DIALOG_WIDGETS) {
-			if (isVisible(widgetId)) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	/**
 	 * True everywhere except while the bank, a shop, the trade screen, or a similar
 	 * modal
 	 */
 	boolean shouldRemapEscape() {
-		if (config.experimentalDialogOnlyMode()) {
-			// Always remapped in this mode; isDialogOpen() instead decides (in the input
-			// listener)
-			// whether a synthetic native Escape also gets fired alongside the remap.
-			log.debug("shouldRemapEscape: experimental dialog-only mode, dialogOpen={}", isDialogOpen());
-			return true;
-		}
-
 		boolean modalInterfaceOpen = false;
 		for (int widgetId : MODAL_CONTENT_WIDGETS) {
 			if (isVisible(widgetId)) {

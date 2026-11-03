@@ -6,7 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.ScriptID;
-import net.runelite.api.annotations.Interface;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.ScriptPostFired;
 import net.runelite.api.gameval.InterfaceID;
@@ -172,9 +171,9 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 
 	private static final int[] MODAL_CONTENT_WIDGETS = {
 
-			/////////////////////////////////////////////////////////
-			// User Interface Tabs //////////////////////////////////
-			/////////////////////////////////////////////////////////
+			////////////////////////////////////////////////////
+			// User Interface Tabs /////////////////////////////
+			////////////////////////////////////////////////////
 
 			// Skill guides
 			InterfaceID.SkillGuide.INFINITY,
@@ -193,6 +192,7 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			// InterfaceID.Collection.UNIVERSE,
 			// InterfaceID.Collection.CONTENT,
 			InterfaceID.QuestjournalOverview.INFINITY,
+			InterfaceID.Questjournal.INFINITY,
 			InterfaceID.Journalscroll.UNIVERSE,
 			InterfaceID.Minigames.INFINITE, // spellbook button
 
@@ -216,7 +216,6 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.Ballot.UNIVERSE,
 			InterfaceID.BondMain.CONTENTS,
 			InterfaceID.BondManagement.CONTENTS,
-			InterfaceID.Displayname.UNIVERSE,
 
 			// Settings
 			InterfaceID.Settings.CONTENT,
@@ -229,9 +228,9 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.WorldswitcherOptions.INFINITE,
 			InterfaceID.XpdropsSetup.UNIVERSE,
 
-			/////////////////////////////////////////////////////////
-			// Player House /////////////////////////////////////////
-			/////////////////////////////////////////////////////////
+			////////////////////////////////////////////////////
+			// Player House ////////////////////////////////////
+			////////////////////////////////////////////////////
 			InterfaceID.Telenexus.UNIVERSE,
 			InterfaceID.TelenexusTeleport.UNIVERSE,
 			InterfaceID.TeletabsCraftIf.UNIVERSE,
@@ -248,9 +247,9 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.PohJewelleryBox.UNIVERSE,
 			InterfaceID.PohFurnitureCreation.UNIVERSE,
 
-			/////////////////////////////////////////////////////////
-			// World UI /////////////////////////////////////////////
-			/////////////////////////////////////////////////////////
+			////////////////////////////////////////////////////
+			// World UI ////////////////////////////////////////
+			////////////////////////////////////////////////////
 
 			// Bank
 			// Bankmain.UNIVERSE (the shared root container) intermittently stays reported
@@ -293,6 +292,7 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.SpeedrunningRewards.CONTENT,
 			InterfaceID.TrekRewards.UNIVERSE,
 			InterfaceID.FossilVolcanicShop.UNIVERSE,
+			InterfaceID.BarbassaultPlayerstat.ROOT_MODEL0,
 
 			// Generic reward shops handled in MODAL_CONTENT_WIDGETS_ANCESTOR_AWARE
 
@@ -307,15 +307,18 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			// Wilderness Looting bag
 			InterfaceID.WildernessLootingbag.UNIVERSE,
 
-			// Chambers of Xeris
+			// Chambers of Xeric
 			InterfaceID.RaidsStoragePrivate.UNIVERSE,
 			InterfaceID.RaidsStorageShared.UNIVERSE, // untested
 			InterfaceID.RaidsRewards.CONTENT, // untested
+			InterfaceID.RaidsChallenge.UNIVERSE,
+			InterfaceID.RaidsLobbyPartylist.UNIVERSE,
+			InterfaceID.RaidsLobbyPartydetails.UNIVERSE,
 
 			// Theatre of Blood
 			InterfaceID.TobPartylist.UNIVERSE,
 			InterfaceID.TobPartydetails.UNIVERSE,
-			InterfaceID.TobChests.CONTENT, // untested
+			InterfaceID.TobChests.CONTENT,
 			InterfaceID.TobMidwayStores.UNIVERSE,
 			InterfaceID.TobInfoboard.UNIVERSE,
 
@@ -324,6 +327,12 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.ToaPartydetails.UNIVERSE,
 			InterfaceID.ToaMidraidlootBag.ITEMS, // untested
 			InterfaceID.ToaChests.CONTENT, // untested
+			InterfaceID.ToaScoreboard.UNIVERSE,
+
+			// Fraccin
+			InterfaceID.TfaPartylist.UNIVERSE,
+			InterfaceID.TfaChests.UNIVERSE,
+			InterfaceID.TfaStats.INFINITY,
 
 			// Wilderness loot chest
 			InterfaceID.WildyLootChest.ITEMS, // untested
@@ -367,6 +376,12 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.GravestoneRetrieval.UNIVERSE,
 			InterfaceID.GryphonBoss.UNIVERSE,
 			InterfaceID.Patchy.UNIVERSE,
+			InterfaceID.Note.UNIVERSE,
+			InterfaceID.PrifRecipes.UNIVERSE,
+			InterfaceID.NtkScores.ROOT_MODEL0, // pyramid plunder
+			InterfaceID.Book.UNIVERSE,
+			InterfaceID.Messagescroll2.ROOT_MODEL1,
+			InterfaceID.Glidermap.UNIVERSE,
 
 			// Fossil island stuff
 			InterfaceID.MessagescrollHandwriting.ROOT_MODEL0, // fossil island fossil cleaning notes

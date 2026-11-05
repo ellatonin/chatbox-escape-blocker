@@ -7,7 +7,6 @@ import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.ScriptID;
 import net.runelite.api.events.GameTick;
-import net.runelite.api.events.ScriptPostFired;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.VarClientID;
 import net.runelite.api.vars.InputType;
@@ -44,63 +43,23 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 	private ClientThread clientThread;
 
 	/**
-	 * The collection log never reliably reports itself closed via any widget (see
-	 * the doc
-	 * comment on {@link #MODAL_CONTENT_WIDGETS} - both Collection.UNIVERSE and
-	 * Collection.CONTENT
-	 * get permanently stuck reporting themselves open), so it's handled separately
-	 * here: script
-	 * 7797 ("collection log setup", per TempleOSRS's own use of it to know when to
-	 * re-add its sync
-	 * button) reliably fires whenever the log's content is (re)built - on open, and
-	 * again on
-	 * switching tabs/searching within it. Rather than guessing how long the log
-	 * stays open (a
-	 * fixed grace period can expire while it's still genuinely open, silently
-	 * letting Escape get
-	 * remapped again), arm a one-shot passthrough a tick after the script fires:
-	 * the
-	 * very next
-	 * Escape press - whenever it comes - is let through as real Escape (closing the
-	 * log, same as
-	 * native behaviour), then normal remapping resumes. The one-tick delay avoids
-	 * arming mid-build,
-	 * in the same tick the script fires.
+	 * {@link Widget#isHidden()} asserts it's called on the client thread, but
+	 * {@link #shouldRemapEscape()} runs on the AWT thread and needs a synchronous
+	 * answer, so {@link #MODAL_CONTENT_WIDGETS} visibility is instead recomputed
+	 * here once per game tick and cached for {@link #shouldRemapEscape()} to read.
 	 */
-	private static final int COLLECTION_LOG_SETUP_SCRIPT_ID = 7797;
-	private int collectionLogEscapePassthroughArmAtTick = -1;
-
-	@Subscribe
-	public void onScriptPostFired(ScriptPostFired event) {
-		if (event.getScriptId() == COLLECTION_LOG_SETUP_SCRIPT_ID) {
-			collectionLogEscapePassthroughArmAtTick = client.getTickCount() + 1;
-			log.debug("onScriptPostFired: collection log setup fired, arming escape passthrough at tick {}",
-					collectionLogEscapePassthroughArmAtTick);
-		}
-	}
-
-	/**
-	 * {@link Widget#getParent()} and {@link Widget#isHidden()} both assert
-	 * they're called on
-	 * the client thread, but {@link #shouldRemapEscape()} runs on the AWT thread
-	 * and needs a
-	 * synchronous answer, so {@link #MODAL_CONTENT_WIDGETS_ANCESTOR_AWARE}
-	 * visibility is instead
-	 * recomputed here once per game tick and cached for
-	 * {@link #shouldRemapEscape()} to read.
-	 */
-	private volatile boolean ancestorAwareWidgetOpen = false;
+	private volatile boolean modalWidgetOpen = false;
 
 	@Subscribe
 	public void onGameTick(GameTick event) {
-		for (int widgetId : MODAL_CONTENT_WIDGETS_ANCESTOR_AWARE) {
+		for (int widgetId : MODAL_CONTENT_WIDGETS) {
 			if (isVisibleIncludingAncestors(widgetId)) {
-				ancestorAwareWidgetOpen = true;
+				modalWidgetOpen = true;
 				return;
 			}
 		}
 
-		ancestorAwareWidgetOpen = false;
+		modalWidgetOpen = false;
 	}
 
 	@Provides
@@ -141,13 +100,6 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 		boolean anyOpen = false;
 
 		for (int widgetId : MODAL_CONTENT_WIDGETS) {
-			if (isVisible(widgetId)) {
-				message.append(' ').append(widgetId).append(',');
-				anyOpen = true;
-			}
-		}
-
-		for (int widgetId : MODAL_CONTENT_WIDGETS_ANCESTOR_AWARE) {
 			if (isVisibleIncludingAncestors(widgetId)) {
 				message.append(' ').append(widgetId).append(',');
 				anyOpen = true;
@@ -185,12 +137,8 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.CaBosses.INFINITY,
 			InterfaceID.CaRewards.REWARDS_CONTENT,
 			InterfaceID.CollectionOverview.INFINITY,
-			// Collection Log doesn't work (very annoying) - both UNIVERSE and CONTENT get
-			// permanently stuck reporting themselves open, not a wrong-widget-choice
-			// problem.
-			// Would need a varbit-based detection signal instead of a widget check.
-			// InterfaceID.Collection.UNIVERSE,
-			// InterfaceID.Collection.CONTENT,
+			InterfaceID.Collection.UNIVERSE,
+			InterfaceID.Collection.CONTENT,
 			InterfaceID.QuestjournalOverview.INFINITY,
 			InterfaceID.Questjournal.INFINITY,
 			InterfaceID.Journalscroll.UNIVERSE,
@@ -236,8 +184,7 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.TeletabsCraftIf.UNIVERSE,
 			InterfaceID.PohBookcase.INFINITE,
 			InterfaceID.LeagueTrophies.INFINITY,
-			// PohCostumes.ITEMS is handled separately below in
-			// MODAL_CONTENT_WIDGETS_ANCESTOR_AWARE, not here.
+			InterfaceID.PohCostumes.ITEMS,
 			InterfaceID.PohMenagerie.UNIVERSE,
 			InterfaceID.PohFurnitureCreationMenu.UNIVERSE,
 			InterfaceID.Fairyrings.ROOT_RECT0,
@@ -257,6 +204,7 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			// even once the interface is genuinely gone
 			InterfaceID.Bankmain.ITEMS,
 			InterfaceID.BankDepositbox.UNIVERSE,
+			InterfaceID.BankDepositImp.INVENTORY,
 			InterfaceID.BankpinKeypad.UNIVERSE,
 			InterfaceID.BankpinSettings.SETTINGS,
 			InterfaceID.GeCollect.UNIVERSE,
@@ -293,8 +241,7 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.TrekRewards.UNIVERSE,
 			InterfaceID.FossilVolcanicShop.UNIVERSE,
 			InterfaceID.BarbassaultPlayerstat.ROOT_MODEL0,
-
-			// Generic reward shops handled in MODAL_CONTENT_WIDGETS_ANCESTOR_AWARE
+			InterfaceID.OmnishopMain.INFINITY, // generic reward shops
 
 			// Fortis Colosseum
 			InterfaceID.ColosseumScoreboard.UNIVERSE,
@@ -360,9 +307,9 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.BarrowsReward.UNIVERSE,
 
 			InterfaceID.DukeSucellusScoreboard.UNIVERSE,
-			InterfaceID.WhispererScoreboard.UNIVERSE, // untested
-			InterfaceID.LeviathanScoreboard.UNIVERSE, // untested
-			InterfaceID.VardorvisScoreboard.UNIVERSE, // untested
+			InterfaceID.WhispererScoreboard.UNIVERSE,
+			InterfaceID.LeviathanScoreboard.UNIVERSE,
+			InterfaceID.VardorvisScoreboard.UNIVERSE,
 
 			// Misc
 			InterfaceID.Questscroll.UNIVERSE,
@@ -382,6 +329,7 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			InterfaceID.Book.UNIVERSE,
 			InterfaceID.Messagescroll2.ROOT_MODEL1,
 			InterfaceID.Glidermap.UNIVERSE,
+			InterfaceID.Letterscroll.ROOT_MODEL0,
 
 			// Fossil island stuff
 			InterfaceID.MessagescrollHandwriting.ROOT_MODEL0, // fossil island fossil cleaning notes
@@ -401,75 +349,53 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 
 			// Clue scrolls
 			InterfaceID.TrailCluetext.ROOT_MODEL0,
-			InterfaceID.TrailRewardscreen.ITEMS, // untested
-			InterfaceID.TrailSlidepuzzle.PIECES, // untested
-			InterfaceID.LightPuzzle.LIGHTS, // untested
-			InterfaceID.TrailSextant.SEXTANT_BACKING, // untested
-
-			InterfaceID.TrailMap01.SCROLLMODEL_MAP01, // untested
-			InterfaceID.TrailMap02.SCROLLMODEL_MAP02, // untested
-			InterfaceID.TrailMap03.SCROLLMODEL_MAP03, // untested
-			InterfaceID.TrailMap04.SCROLLMODEL_MAP04, // untested
-			InterfaceID.TrailMap05.SCROLLMODEL_MAP05, // untested
-			InterfaceID.TrailMap06.SCROLLMODEL_MAP06, // untested
-			InterfaceID.TrailMap07.BG_SCROLL, // untested
-			InterfaceID.TrailMap08.BG_SCROLL, // untested
+			InterfaceID.TrailRewardscreen.ITEMS,
+			InterfaceID.TrailSlidepuzzle.PIECES,
+			InterfaceID.LightPuzzle.LIGHTS,
+			InterfaceID.TrailSextant.SEXTANT_BACKING,
+			InterfaceID.TrailMap01.SCROLLMODEL_MAP01,
+			InterfaceID.TrailMap02.SCROLLMODEL_MAP02,
+			InterfaceID.TrailMap03.SCROLLMODEL_MAP03,
+			InterfaceID.TrailMap04.SCROLLMODEL_MAP04,
+			InterfaceID.TrailMap05.SCROLLMODEL_MAP05,
+			InterfaceID.TrailMap06.SCROLLMODEL_MAP06,
+			InterfaceID.TrailMap07.BG_SCROLL,
+			InterfaceID.TrailMap08.BG_SCROLL,
 			InterfaceID.TrailMap09.BG_SCROLL,
-			InterfaceID.TrailMap10.BG_SCROLL, // untested
-			InterfaceID.TrailMap11.BG_SCROLL, // untested
-			InterfaceID.TrailMap12.BG_SCROLL, // untested
-			InterfaceID.TrailMap13.BG_SCROLL, // untested
-			InterfaceID.TrailMap14.BG_SCROLL, // untested
-			InterfaceID.TrailMap15.BG_SCROLL, // untested
-			InterfaceID.TrailMap16.BG_SCROLL, // untested
-			InterfaceID.TrailMap17.BG_SCROLL, // untested
-			InterfaceID.TrailMap18.BG_SCROLL, // untested
-			InterfaceID.TrailMap19.BG_SCROLL, // untested
-			InterfaceID.TrailMap20.ROOT_MODEL0, // untested
-			InterfaceID.TrailMap21.ROOT_MODEL0, // untested
-			InterfaceID.TrailMap22.ROOT_MODEL0, // untested
-			InterfaceID.TrailMap23.ROOT_MODEL0, // untested
-			InterfaceID.TrailMap24.ROOT_MODEL0, // untested
-
-			// A few map clues live outside the TrailMap01-24 block at their own group IDs
-			InterfaceID.TrailClueEasyMap006.BG_SCROLL, // untested
-			InterfaceID.TrailClueHardMap006.BG_SCROLL, // untested
-			InterfaceID.TrailClueHardMap007.BG_SCROLL, // untested
-			InterfaceID.TrailClueMediumMap008.ROOT_MODEL0, // untested
-			InterfaceID.TrailClueMediumMap009.ROOT_MODEL0, // untested
-			InterfaceID.TrailClueMediumMap010.BG_SCROLL, // untested
-			InterfaceID.TrailClueMediumMap011.BG_SCROLL, // untested
-			InterfaceID.TrailClueMediumMap012.BG_SCROLL, // untested
+			InterfaceID.TrailMap10.BG_SCROLL,
+			InterfaceID.TrailMap11.BG_SCROLL,
+			InterfaceID.TrailMap12.BG_SCROLL,
+			InterfaceID.TrailMap13.BG_SCROLL,
+			InterfaceID.TrailMap14.BG_SCROLL,
+			InterfaceID.TrailMap15.BG_SCROLL,
+			InterfaceID.TrailMap16.BG_SCROLL,
+			InterfaceID.TrailMap17.BG_SCROLL,
+			InterfaceID.TrailMap18.BG_SCROLL,
+			InterfaceID.TrailMap19.BG_SCROLL,
+			InterfaceID.TrailMap20.ROOT_MODEL0,
+			InterfaceID.TrailMap21.ROOT_MODEL0,
+			InterfaceID.TrailMap22.ROOT_MODEL0,
+			InterfaceID.TrailMap23.ROOT_MODEL0,
+			InterfaceID.TrailMap24.ROOT_MODEL0,
+			InterfaceID.TrailClueEasyMap006.BG_SCROLL,
+			InterfaceID.TrailClueHardMap006.BG_SCROLL,
+			InterfaceID.TrailClueHardMap007.BG_SCROLL,
+			InterfaceID.TrailClueMediumMap008.ROOT_MODEL0,
+			InterfaceID.TrailClueMediumMap009.ROOT_MODEL0,
+			InterfaceID.TrailClueMediumMap010.BG_SCROLL,
+			InterfaceID.TrailClueMediumMap011.BG_SCROLL,
+			InterfaceID.TrailClueMediumMap012.BG_SCROLL,
 
 			// Group Ironman, probably more cant verify rn
 			InterfaceID.GimSettings.INFINITE,
 			InterfaceID.GimOptions.INFINITE,
 			InterfaceID.SharedBank.INFINITE, // GIM bank
 
-	};
+			// escape doesn't close these
+			// InterfaceID.DisplaynameMenu.INFINITE,
+			// InterfaceID.Smithing.UNIVERSE,
+			// InterfaceID.CraftingGold.UNIVERSE,
 
-	/**
-	 * Widgets that need {@link #isVisibleIncludingAncestors(int)} instead of the
-	 * plain
-	 * {@link #isVisible(int)} check used for {@link #MODAL_CONTENT_WIDGETS}.
-	 *
-	 * PohCostumes.ITEMS: opening the costume room's search box and then pressing
-	 * Escape takes
-	 * a different closing path than a normal close - instead of unloading the
-	 * group (like a
-	 * normal close) or flipping the widget's own hidden flag, it only hides an
-	 * ancestor
-	 * container above PohCostumes' own root. Every widget in the group keeps
-	 * reporting
-	 * selfHidden=false forever, so {@link #isVisible(int)} never notices it
-	 * closed.
-	 */
-	private static final int[] MODAL_CONTENT_WIDGETS_ANCESTOR_AWARE = {
-			InterfaceID.PohCostumes.ITEMS,
-			InterfaceID.BankDepositImp.INVENTORY,
-			InterfaceID.OmnishopMain.INFINITY,
-			InterfaceID.Smithing.UNIVERSE, // bugged in osrs, escape doesn't close
-			InterfaceID.CraftingGold.UNIVERSE, // bugged in osrs, escape doesn't close
 	};
 
 	/**
@@ -477,18 +403,9 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 	 * modal
 	 */
 	boolean shouldRemapEscape() {
-		boolean modalInterfaceOpen = false;
-		for (int widgetId : MODAL_CONTENT_WIDGETS) {
-			if (isVisible(widgetId)) {
-				modalInterfaceOpen = true;
-				log.debug("shouldRemapEscape: blocked by widget {}", widgetId);
-				break;
-			}
-		}
-
-		if (!modalInterfaceOpen && ancestorAwareWidgetOpen) {
-			modalInterfaceOpen = true;
-			log.debug("shouldRemapEscape: blocked by cached ancestor-aware widget state");
+		boolean modalInterfaceOpen = modalWidgetOpen;
+		if (modalInterfaceOpen) {
+			log.debug("shouldRemapEscape: blocked by cached modal widget state");
 		}
 
 		int debugWidgetId = config.debugWidgetId();
@@ -496,13 +413,6 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 			boolean debugWidgetVisible = isVisible(debugWidgetId);
 			log.debug("shouldRemapEscape: debugWidgetId={} visible={}", debugWidgetId, debugWidgetVisible);
 			modalInterfaceOpen |= debugWidgetVisible;
-		}
-
-		if (collectionLogEscapePassthroughArmAtTick != -1
-				&& client.getTickCount() >= collectionLogEscapePassthroughArmAtTick) {
-			log.debug("shouldRemapEscape: consuming armed collection log escape passthrough");
-			modalInterfaceOpen = true;
-			collectionLogEscapePassthroughArmAtTick = -1;
 		}
 
 		if (modalInterfaceOpen) {
@@ -550,17 +460,15 @@ public class ChatboxEscapeBlockerPlugin extends Plugin {
 	/**
 	 * Like {@link #isVisible(int)}, but uses {@link Widget#isHidden()} - which
 	 * also accounts for
-	 * ancestors, unlike {@link Widget#isSelfHidden()} - since PohCostumes' stuck-
-	 * after-search
-	 * state hides it via an ancestor in the client's interface-layer system
-	 * rather than any
-	 * widget's own flag. isHidden() asserts it's called on the client thread, so
-	 * this may only
-	 * be called from {@link #onGameTick(GameTick)} or other client-thread
-	 * callbacks - never
-	 * directly from {@link #shouldRemapEscape()}, which runs on the AWT thread
-	 * and reads the
-	 * cached {@link #ancestorAwareWidgetOpen} instead.
+	 * ancestors, unlike {@link Widget#isSelfHidden()}. Several widgets in
+	 * {@link #MODAL_CONTENT_WIDGETS} (e.g. PohCostumes.ITEMS, GeOffers.CONTENTS)
+	 * only ever get hidden via an ancestor in the client's interface-layer
+	 * system rather than flipping their own hidden flag, so this is the check
+	 * used for all of them. isHidden() asserts it's called on the client
+	 * thread, so this may only be called from {@link #onGameTick(GameTick)} or
+	 * other client-thread callbacks - never directly from
+	 * {@link #shouldRemapEscape()}, which runs on the AWT thread and reads the
+	 * cached {@link #modalWidgetOpen} instead.
 	 */
 	private boolean isVisibleIncludingAncestors(int component) {
 		Widget w = client.getWidget(component);
